@@ -594,5 +594,5 @@ void thread_priority_temporarily_up(void)
 /* Restore the previous priority of the thread*/
 void thread_priority_restore(void)
 {
-  thread_current()->priority = thread_current()->orig_priority;
+  thread_current()->priority = thread_current()->prev_priority;
 }
