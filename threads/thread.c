@@ -110,7 +110,7 @@ static bool th_before(const struct list_elem *a,const struct list_elem *b,void *
 /*comparator for sleeper_list*/
 static bool before(const struct list_elem *a,const struct list_elem *b,void *aux UNUSED)
 {
-  return list_entry(a,struct thread,elem)->wakeup_at < list_entry(b,struct thread,elem)->wakeup_at;
+  return list_entry(a,struct thread,elem)->wakeup_time < list_entry(b,struct thread,elem)->wakeup_time;
 }
 
 
@@ -137,7 +137,7 @@ thread_wakeup (int64_t current_tick)
   if(!list_empty(&sleeper_list)) // if sleeper list is not empty
   {
     struct thread * th = list_entry(list_begin(&sleeper_list), struct thread, elem); // thread to wake up
-    if(th->wakeup_at <= current_tick)
+    if(th->wakeup_time <= current_tick)
     {
       list_pop_front(&sleeper_list);
       thread_unblock(th);
@@ -653,15 +653,15 @@ void thread_priority_restore(void)
 }
 
 /* making the current thread go to sleep and updating it's wakeup time*/
-void thread_block_till(int64_t wakeup_at, int currentTime)
+void thread_block_till(int64_t wakeup_time, int currentTime)
 {
   // disable interrupts
   enum intr_level old_int=intr_disable();
   
   struct thread *temp = thread_current();
-  if(currentTime > wakeup_at) return;
+  if(currentTime > wakeup_time) return;
   ASSERT(temp->status == THREAD_RUNNING); 
-  temp->wakeup_time = wakeup_at; // setting the wakeup time of the thread.
+  temp->wakeup_time = wakeup_time; // setting the wakeup time of the thread.
   list_insert_ordered(&sleeper_list,&(temp->elem),before,NULL); // insert it to the sleeper list
   thread_block(); 
   
