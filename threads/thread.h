@@ -96,7 +96,8 @@ struct thread
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
-
+    struct list locks_acquired;         /*All locks acquired currently by the thread*/
+    struct lock *lock_seeking;               /* the lock, thread is seeking*/
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
@@ -148,7 +149,13 @@ void thread_block_till(int64_t , int);
 void thread_priority_restore(void);
 void thread_set_next_wakeup(void);
 void thread_check_prio(void);
-void update_ready_list(void);
+
 void thread_wakeup (int64_t);///////
 
+void update_ready_list(void);
+
+void thread_add_lock (struct lock *);
+void thread_remove_lock (struct lock *);
+void thread_donate_priority (struct thread *);
+void thread_update_priority (struct thread *);
 #endif /* threads/thread.h */
