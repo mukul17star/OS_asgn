@@ -24,6 +24,8 @@
    that are ready to run but not actually running. */
 static struct list ready_list;
 
+static struct list sleeper_list;
+
 /* List of all processes.  Processes are added to this list
    when they are first scheduled and removed when they exit. */
 static struct list all_list;
@@ -91,6 +93,7 @@ thread_init (void)
 
   lock_init (&tid_lock);
   list_init (&ready_list);
+  list_init (&sleeper_list);
   list_init (&all_list);
 
   /* Set up a thread structure for the running thread. */
@@ -131,6 +134,7 @@ thread_start (void)
   sema_down (&idle_started);
 }
 
+/* Wakes up the threads which have the wakeup time less than or eqaul to the current tick time*/
 void
 thread_wakeup (int64_t current_tick)
 {
@@ -146,6 +150,7 @@ thread_wakeup (int64_t current_tick)
   }
   return;
 }
+
 
 /* Called by the timer interrupt handler at each timer tick.
    Thus, this function runs in an external interrupt context. */
@@ -517,8 +522,6 @@ init_thread (struct thread *t, const char *name, int priority)
   t->initial_priority = t->priority;
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
-  list_init(&(t->locks_acquired));
-  t->lock_seeking =NULL;
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
@@ -649,7 +652,7 @@ void thread_priority_temporarily_up(void)
 /* Restore the previous priority of the thread*/
 void thread_priority_restore(void)
 {
-  thread_current()->priority = thread_current()->orig_priority;
+  thread_current()->priority = thread_current()->prev_priority;
 }
 
 /* making the current thread go to sleep and updating it's wakeup time*/
