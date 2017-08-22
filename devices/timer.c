@@ -105,9 +105,9 @@ timer_sleep (int64_t ticks)
     thread_yield ();*/
   thread_priority_temporarily_up();//set the priority 
   //thread_block_till(wakeup_at,ticks);//new thread join with less wakeup time
-  thread_sleep(wakeup,ticks);
+  thread_block_till(wakeup,ticks);
   //thread_set_next_wakeup();//find new thread to be woken up
-  set_next_wakeup();
+  thread_set_next_wakeup();
   thread_priority_restore();
 }
 
