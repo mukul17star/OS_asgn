@@ -390,7 +390,7 @@ thread_set_priority (int new_priority)
   /* Always update base priority. */
   t->initial_priority = new_priority;
   
-  thread_donate_priority(t);
+  //thread_donate_priority(t);
   thread_check_prio();
 
   //thread_current ()->priority = new_priority;
