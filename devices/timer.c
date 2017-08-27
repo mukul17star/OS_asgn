@@ -99,16 +99,10 @@ void
 timer_sleep (int64_t ticks) 
 {
   int64_t start = timer_ticks ();
-  int64_t wakeup=start+ticks;
+
   ASSERT (intr_get_level () == INTR_ON);
-  /*while (timer_elapsed (start) < ticks) 
-    thread_yield ();*/
-  thread_priority_temporarily_up();//set the priority 
-  //thread_block_till(wakeup_at,ticks);//new thread join with less wakeup time
-  thread_block_till(wakeup,ticks);
-  //thread_set_next_wakeup();//find new thread to be woken up
-  thread_set_next_wakeup();
-  thread_priority_restore();
+  while (timer_elapsed (start) < ticks) 
+    thread_yield ();
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
