@@ -1,4 +1,4 @@
-#include "devices/timer.h"
+	#include "devices/timer.h"
 #include <debug.h>
 #include <inttypes.h>
 #include <round.h>
@@ -101,8 +101,13 @@ timer_sleep (int64_t ticks)
   int64_t start = timer_ticks ();
 
   ASSERT (intr_get_level () == INTR_ON);
+
+  thread_priority_temporarily_up ();
+
   while (timer_elapsed (start) < ticks) 
     thread_yield ();
+
+  thread_priority_restore ();
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
