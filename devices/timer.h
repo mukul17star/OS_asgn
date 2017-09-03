@@ -23,6 +23,7 @@ void timer_nsleep (int64_t nanoseconds);
 void timer_mdelay (int64_t milliseconds);
 void timer_udelay (int64_t microseconds);
 void timer_ndelay (int64_t nanoseconds);
+void thread_set_next_wakeup();
 
 void timer_print_stats (void);
 
