@@ -104,11 +104,11 @@ timer_sleep (int64_t ticks)
 
   thread_priority_temporarily_up ();
 
-  //thread_sleep(wakeup,ticks);//thread_block_till
+  thread_sleep(wakeup,ticks);//thread_block_till
 
-  while (timer_elapsed (start) < ticks) 
-    thread_yield ();
-  //thread_set_next_wakeup();
+  /*while (timer_elapsed (start) < ticks) 
+    thread_yield ();*/
+  thread_set_next_wakeup();
   thread_priority_restore ();
 }
 
