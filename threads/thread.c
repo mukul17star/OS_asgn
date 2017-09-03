@@ -24,6 +24,10 @@
    that are ready to run but not actually running. */
 static struct list ready_list;
 
+/*List of processes in THREAD_BLOCKED state, that are sleepeing/blocked state*/
+static struct list sleeper_list;
+
+
 /* List of all processes.  Processes are added to this list
    when they are first scheduled and removed when they exit. */
 static struct list all_list;
@@ -92,6 +96,7 @@ thread_init (void)
   lock_init (&tid_lock);
   list_init (&ready_list);
   list_init (&all_list);
+  list_init (&sleeper_list);
 
   /* Set up a thread structure for the running thread. */
   initial_thread = running_thread ();
@@ -99,6 +104,13 @@ thread_init (void)
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
 }
+
+/*comparator for sleeper list to sort in inc. order of wakeup time  */
+static bool before(const struct list_elem *a,const struct list_elem *b,void *aux UNUSED)
+{
+  return list_entry(a,struct thread,elem)->wakeup_at < list_entry(b,struct thread,elem)->wakeup_at;
+}
+
 
 /* Starts preemptive thread scheduling by enabling interrupts.
    Also creates the idle thread. */
@@ -593,5 +605,34 @@ void thread_priority_temporarily_up (){
 
 void thread_priority_restore (){
   thread_current()->priority=thread_current()->prev_priority;
+
+}
+
+void thread_sleep(int64_t wakeup,int64_t ticks){
+  //disabling the interrupt to not let other threads access sleeper list
+  enum intr_level old_int =intr_disable();//saving intr state before disabling 
+
+  struct thread *th= thread_current();
+  if(wakeup < ticks) return;
+  ASSERT(th->status = THREAD_RUNNING);
+  th->wakeup_at = wakeup;
+  list_insert_ordered(&sleeper_list,&(th->elem),before,NULL); // insert it to the sleeper list
+  thread_block();
+  //enabling interrupt back again
+  intr_set_level(old_int);//restoring last saved intr state
+}
+
+void thread_set_next_wakeup(){
+
+  if( list_empty(&sleeper_list)==false){//sleeper list is not empty
+    struct thread * th = thread_current(); // current running thread
+    struct thread *th2 = list_entry(list_begin(&sleeper_list),struct thread,elem); // thread corresponding to the head of the sleeper list
+
+    if(th2->wakeup_at <= th->wakeup_at)
+    {
+      list_pop_front(&sleeper_list);
+      thread_unblock(th2);
+    }
+  }
 
 }

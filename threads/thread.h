@@ -89,6 +89,7 @@ struct thread
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
     int prev_priority;                  /*New Priority*/
+    int64_t wakeup_at;                  /*wakeup time*/
     struct list_elem allelem;           /* List element for all threads list. */
 
     /* Shared between thread.c and synch.c. */
@@ -142,7 +143,7 @@ int thread_get_load_avg (void);
 //new functions made
 void thread_priority_temporarily_up ();
 void thread_priority_restore ();
-
+void thread_sleep(int64_t wakeup,int64_t ticks);
 
 
 #endif /* threads/thread.h */
