@@ -630,8 +630,12 @@ void thread_set_next_wakeup(){
 
     if(th2->wakeup_at <= th->wakeup_at)
     {
+      enum intr_level old_level =intr_disable();
+
       list_pop_front(&sleeper_list);
       thread_unblock(th2);
+      
+      intr_set_level(old_level);
     }
   }
 
