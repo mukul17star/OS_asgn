@@ -98,18 +98,16 @@ timer_elapsed (int64_t then)
 void
 timer_sleep (int64_t ticks) 
 {
-  int64_t start = timer_ticks ();//the time when timer_sleep is started
-  int64_t wakeup= start+ticks;//wakeup time is start + amount to sleep(ticks)
+  int64_t start = timer_ticks ();
+  ticks+=start;
   ASSERT (intr_get_level () == INTR_ON);
+ thread_priority_temporarily_up();
+  // while (timer_elapsed (start) < ticks) 
+  //   thread_yield ();
 
-  thread_priority_temporarily_up ();
-
-  thread_sleep(wakeup,ticks);//thread_block_till
-
-  /*while (timer_elapsed (start) < ticks) 
-    thread_yield ();*/
+  thread_block_till(ticks);
   thread_set_next_wakeup();
-  thread_priority_restore ();
+  thread_priority_restore();
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be

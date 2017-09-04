@@ -23,10 +23,7 @@
 /* List of processes in THREAD_READY state, that is, processes
    that are ready to run but not actually running. */
 static struct list ready_list;
-
-/*List of processes in THREAD_BLOCKED state, that are sleepeing/blocked state*/
 static struct list sleeper_list;
-
 
 /* List of all processes.  Processes are added to this list
    when they are first scheduled and removed when they exit. */
@@ -95,8 +92,8 @@ thread_init (void)
 
   lock_init (&tid_lock);
   list_init (&ready_list);
-  list_init (&all_list);
   list_init (&sleeper_list);
+  list_init (&all_list);
 
   /* Set up a thread structure for the running thread. */
   initial_thread = running_thread ();
@@ -104,13 +101,6 @@ thread_init (void)
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
 }
-
-/*comparator for sleeper list to sort in inc. order of wakeup time  */
-static bool before(const struct list_elem *a,const struct list_elem *b,void *aux UNUSED)
-{
-  return list_entry(a,struct thread,elem)->wakeup_at < list_entry(b,struct thread,elem)->wakeup_at;
-}
-
 
 /* Starts preemptive thread scheduling by enabling interrupts.
    Also creates the idle thread. */
@@ -145,7 +135,7 @@ thread_tick (void)
 #endif
   else
     kernel_ticks++;
-
+  thread_set_next_wakeup();
   /* Enforce preemption. */
   if (++thread_ticks >= TIME_SLICE)
     intr_yield_on_return ();
@@ -257,7 +247,7 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_push_back (&ready_list, &t->elem);
+  list_insert_ordered (&ready_list, &t->elem, (list_less_func *)&priority_more, NULL);
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -328,7 +318,7 @@ thread_yield (void)
 
   old_level = intr_disable ();
   if (cur != idle_thread) 
-    list_push_back (&ready_list, &cur->elem);
+    list_insert_ordered (&ready_list, &cur->elem, (list_less_func *)&priority_more, NULL);
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -357,7 +347,6 @@ thread_set_priority (int new_priority)
 {
   thread_current ()->priority = new_priority;
 }
-
 /* Returns the current thread's priority. */
 int
 thread_get_priority (void) 
@@ -496,7 +485,6 @@ alloc_frame (struct thread *t, size_t size)
   t->stack -= size;
   return t->stack;
 }
-
 /* Chooses and returns the next thread to be scheduled.  Should
    return a thread from the run queue, unless the run queue is
    empty.  (If the running thread can continue running, then it
@@ -510,6 +498,72 @@ next_thread_to_run (void)
   else
     return list_entry (list_pop_front (&ready_list), struct thread, elem);
 }
+
+//My Changes starts from 500th line :B
+static bool priority_more(const struct list_elem * a, const struct list_elem * b, void * aux UNUSED)
+{
+  ASSERT(a!=NULL);
+  ASSERT(b!=NULL);
+  const struct thread * one = list_entry(a, struct thread, elem);
+  const struct thread * two = list_entry(b, struct thread, elem);
+  return one->priority>two->priority;
+}
+static bool sleep_less(const struct list_elem * a, const struct list_elem * b, void * aux UNUSED)
+{
+  ASSERT(a!=NULL);
+  ASSERT(b!=NULL);
+  const struct thread * one = list_entry(a, struct thread, elem);
+  const struct thread * two = list_entry(b, struct thread, elem);
+  return one->wake_up<two->wake_up;
+}
+void thread_priority_temporarily_up()
+{
+  thread_current()->old_priority=thread_current()->priority;
+  thread_current()->priority=PRI_MAX;
+}
+void thread_priority_restore()
+{
+  thread_current()->priority=thread_current()->old_priority;
+}
+void thread_block_till(int64_t wake_up)
+{
+  if(wake_up<=0)
+     return;
+  struct thread * t = thread_current();
+  ASSERT(t->status==THREAD_RUNNING);
+  enum intr_level old_level = intr_disable();
+
+  //thread_priority_temporarily_up(t);
+  t->wake_up=wake_up;
+  list_insert_ordered(&sleeper_list, &t->elem, (list_less_func *)&sleep_less, NULL);
+  thread_block();
+  intr_set_level(old_level);
+}
+void thread_set_next_wakeup(void)
+{
+  if(list_empty(&sleeper_list))return;
+  struct list_elem *cur_elem;
+  struct thread *t;
+  enum intr_level old_level;
+  cur_elem=list_begin(&sleeper_list);
+  if(cur_elem ==NULL)return;
+  t=list_entry(cur_elem,struct thread, elem);
+
+
+   if(t->wake_up > timer_ticks())return;
+    old_level=intr_disable();
+    list_remove(cur_elem);
+    //thread_priority_restore(t);
+    thread_unblock(t);
+    intr_set_level(old_level);
+    //if(!list_empty(&sleeper_list))
+    //thread_set_next_wakeup();
+}
+
+
+
+
+
 
 /* Completes a thread switch by activating the new thread's page
    tables, and, if the previous thread is dying, destroying it.
@@ -597,46 +651,3 @@ allocate_tid (void)
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
-
-void thread_priority_temporarily_up (){
-  thread_current()->prev_priority=thread_current()->priority;
-  thread_current()->priority=PRI_MAX;
-}
-
-void thread_priority_restore (){
-  thread_current()->priority=thread_current()->prev_priority;
-
-}
-
-void thread_sleep(int64_t wakeup,int64_t ticks){
-  //disabling the interrupt to not let other threads access sleeper list
-  enum intr_level old_int =intr_disable();//saving intr state before disabling 
-
-  struct thread *th= thread_current();
-  if(wakeup < ticks) return;
-  ASSERT(th->status == THREAD_RUNNING);
-  th->wakeup_at = wakeup;
-  list_insert_ordered(&sleeper_list,&(th->elem),before,NULL); // insert it to the sleeper list
-  thread_block();
-  //enabling interrupt back again
-  intr_set_level(old_int);//restoring last saved intr state
-}
-
-void thread_set_next_wakeup(){
-
-  if( list_empty(&sleeper_list)==false){//sleeper list is not empty
-    struct thread * th = thread_current(); // current running thread
-    struct thread *th2 = list_entry(list_begin(&sleeper_list),struct thread,elem); // thread corresponding to the head of the sleeper list
-
-    if(th2->wakeup_at <= th->wakeup_at)
-    {
-      enum intr_level old_level =intr_disable();
-
-      list_pop_front(&sleeper_list);
-      thread_unblock(th2);
-      
-      intr_set_level(old_level);
-    }
-  }
-
-}

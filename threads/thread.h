@@ -88,12 +88,16 @@ struct thread
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
-    int prev_priority;                  /*New Priority*/
-    int64_t wakeup_at;                  /*wakeup time*/
     struct list_elem allelem;           /* List element for all threads list. */
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
+    
+    //My changes
+    int old_priority;
+    int64_t wake_up;
+
+
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
@@ -128,6 +132,17 @@ const char *thread_name (void);
 void thread_exit (void) NO_RETURN;
 void thread_yield (void);
 
+
+//My Changes
+static bool priority_more(const struct list_elem * a, const struct list_elem * b, void * aux UNUSED);
+static bool sleep_less(const struct list_elem * a, const struct list_elem * b, void * aux UNUSED);
+void thread_block_till(int64_t wake_up);
+void thread_priority_temporarily_up(void);
+void thread_priority_restore(void);
+void thread_set_next_wakeup(void);
+
+
+
 /* Performs some operation on thread t, given auxiliary data AUX. */
 typedef void thread_action_func (struct thread *t, void *aux);
 void thread_foreach (thread_action_func *, void *);
@@ -139,11 +154,5 @@ int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
-
-//new functions made
-void thread_priority_temporarily_up ();
-void thread_priority_restore ();
-void thread_sleep(int64_t wakeup,int64_t ticks);
-void thread_set_next_wakeup();
 
 #endif /* threads/thread.h */
