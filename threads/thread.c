@@ -614,7 +614,7 @@ void thread_sleep(int64_t wakeup,int64_t ticks){
 
   struct thread *th= thread_current();
   if(wakeup < ticks) return;
-  ASSERT(th->status = THREAD_RUNNING);
+  ASSERT(th->status == THREAD_RUNNING);
   th->wakeup_at = wakeup;
   list_insert_ordered(&sleeper_list,&(th->elem),before,NULL); // insert it to the sleeper list
   thread_block();
