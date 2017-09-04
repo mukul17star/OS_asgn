@@ -144,6 +144,6 @@ int thread_get_load_avg (void);
 void thread_priority_temporarily_up ();
 void thread_priority_restore ();
 void thread_sleep(int64_t wakeup,int64_t ticks);
-
+void thread_set_next_wakeup();
 
 #endif /* threads/thread.h */
