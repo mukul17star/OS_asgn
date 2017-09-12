@@ -340,12 +340,50 @@ thread_foreach (thread_action_func *func, void *aux)
       func (t, aux);
     }
 }
+//TASK01 (T02)
+void
+thread_given_set_priority (struct thread *cur, int new_priority,bool is_donated)
+{
+  enum intr_level old_level;
+  old_level = intr_disable();
 
+  ASSERT (new_priority >= PRI_MIN && new_priority <= PRI_MAX);
+  ASSERT (is_thread (cur));
+
+   
+   if (!is_donated) 
+     {
+       if (cur->is_donated && new_priority <= cur->priority) 
+          cur->stored_priority = new_priority;
+       else
+          cur->priority = cur->stored_priority = new_priority;
+     }
+   else 
+     {
+        cur->priority = new_priority;
+        cur->is_donated = true;
+     }
+  if (cur->status == THREAD_READY)
+    {
+      list_remove (&cur->elem);
+      list_insert_ordered (&ready_list, &cur->elem, (list_less_func *)&sleep_less, NULL);
+    }
+  else if (cur->status == THREAD_RUNNING &&
+           list_entry (list_begin (&ready_list),
+                       struct thread,
+                       elem
+                       )->priority > cur->priority
+           )
+    {
+      thread_yield ();
+    }
+  intr_set_level (old_level);
+}
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void
 thread_set_priority (int new_priority) 
 {
-  thread_current ()->priority = new_priority;
+  thread_given_set_priority (thread_current (), new_priority, false);
 }
 /* Returns the current thread's priority. */
 int
@@ -525,45 +563,43 @@ void thread_priority_restore()
 {
   thread_current()->priority=thread_current()->old_priority;
 }
-void thread_block_till(int64_t wake_up)
+void thread_block_till(int64_t wakeup)
 {
-  if(wake_up<=0)
+  if(wakeup<=0)
      return;
   struct thread * t = thread_current();
   ASSERT(t->status==THREAD_RUNNING);
   enum intr_level old_level = intr_disable();
 
   //thread_priority_temporarily_up(t);
-  t->wake_up=wake_up;
+  t->wake_up=wakeup;
   list_insert_ordered(&sleeper_list, &t->elem, (list_less_func *)&sleep_less, NULL);
   thread_block();
   intr_set_level(old_level);
 }
 void thread_set_next_wakeup(void)
 {
-  if(list_empty(&sleeper_list))return;
+  if(list_empty(&sleeper_list)) //if no one is sleeping
+    return;
+
   struct list_elem *cur_elem;
   struct thread *t;
   enum intr_level old_level;
-  cur_elem=list_begin(&sleeper_list);
-  if(cur_elem ==NULL)return;
-  t=list_entry(cur_elem,struct thread, elem);
+  cur_elem=list_begin(&sleeper_list);  //return the begining of the list
+  if(cur_elem ==NULL)
+    return;
 
+  t=list_entry(cur_elem,struct thread,elem);
 
-   if(t->wake_up > timer_ticks())return;
+   if(t->wake_up > timer_ticks())
+     return;
+
     old_level=intr_disable();
     list_remove(cur_elem);
-    //thread_priority_restore(t);
+  
     thread_unblock(t);
     intr_set_level(old_level);
-    //if(!list_empty(&sleeper_list))
-    //thread_set_next_wakeup();
 }
-
-
-
-
-
 
 /* Completes a thread switch by activating the new thread's page
    tables, and, if the previous thread is dying, destroying it.
