@@ -9,7 +9,6 @@
 #include "threads/thread.h"
   
 /* See [8254] for hardware details of the 8254 timer chip. */
-#define RECALC_FREQ 4
 
 #if TIMER_FREQ < 19
 #error 8254 timer requires TIMER_FREQ >= 19
@@ -17,9 +16,6 @@
 #if TIMER_FREQ > 1000
 #error TIMER_FREQ <= 1000 recommended
 #endif
-
-/* List of processes sleeping */
-static struct list sleep_list;
 
 /* Number of timer ticks since OS booted. */
 static int64_t ticks;
@@ -102,24 +98,18 @@ timer_elapsed (int64_t then)
 void
 timer_sleep (int64_t ticks) 
 {
-  
+  int64_t start = timer_ticks ();
+  //enum intr_level old_level;
 
   ASSERT (intr_get_level () == INTR_ON);
+   thread_priority_temporarily_up();
+   thread_block_till(start+ticks);
+ 
+   thread_set_next_wakeup();
+   thread_priority_restore();
+  
+  //thread_sleep(ticks);
 
-  if(ticks<=0)
-    {
-      return;
-    }
-  /* Turn interrupts off temporarily to:
-     - add thread to sleep list
-     - block thread */
-  enum intr_level old_level = intr_disable ();
-  //list_push_back(&sleep_list, &thread_current()->sleep_elem);
-  thread_current()->ticks = timer_ticks() + ticks;
-  list_insert_ordered(&sleep_list, &thread_current()->elem,
-         (list_less_func *) &cmp_ticks, NULL);
-  thread_block();
-  intr_set_level(old_level);
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -196,38 +186,8 @@ timer_print_stats (void)
 static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
-  //struct list_elem *e;
   ticks++;
-  thread_tick();
-  
-  
-    if (thread_mlfqs)
-    {
-      mlfqs_increment();
-      if (ticks % TIMER_FREQ == 0)
-      {
-          mlfqs_load_avg();
-          mlfqs_recalc(); // Recalcs recent_cpu and priority
-      }
-      if (ticks % RECALC_FREQ == 0)
-      {
-        mlfqs_priority(thread_current());
-        
-      }
-    }
-      struct list_elem *e = list_begin(&sleep_list);
-  while (e != list_end(&sleep_list))
-    {
-      struct thread *t = list_entry(e, struct thread, elem);      
-      if (ticks < t->ticks)
-      {
-        break;
-      }
-      list_remove(e); // remove from sleep list
-      thread_unblock(t); // Unblock and add to ready list
-      e = list_begin(&sleep_list);
-    }
-  test_max_priority(); // Tests if thread still has max priority
+  thread_tick ();
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer
