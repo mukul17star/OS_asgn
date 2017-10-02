@@ -4,6 +4,7 @@
 #include <debug.h>
 #include <list.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -92,7 +93,7 @@ struct thread
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
-        /* Used for timer sleep */
+          /* Used for timer sleep */
     struct list_elem sleep_elem;
     int64_t ticks;
 #ifdef USERPROG
@@ -139,5 +140,16 @@ int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
+
+/* Added functions */
+
+bool cmp_ticks (const struct list_elem *a,
+   const struct list_elem *b,
+   void *aux UNUSED);
+
+bool cmp_priority (const struct list_elem *a,
+      const struct list_elem *b,
+      void *aux UNUSED);
++void refresh_ready_list (void);
 
 #endif /* threads/thread.h */
