@@ -50,6 +50,16 @@ sema_init (struct semaphore *sema, unsigned value)
   list_init (&sema->waiters);
 }
 
+//................My Changes
+static bool priority_more(const struct list_elem * a, const struct list_elem * b, void * aux UNUSED)
+{
+  ASSERT(a!=NULL);
+  ASSERT(b!=NULL);
+  const struct thread * one = list_entry(a, struct thread, elem);
+  const struct thread * two = list_entry(b, struct thread, elem);
+  return one->priority>two->priority;
+}
+
 /* Down or "P" operation on a semaphore.  Waits for SEMA's value
    to become positive and then atomically decrements it.
 
@@ -57,6 +67,7 @@ sema_init (struct semaphore *sema, unsigned value)
    interrupt handler.  This function may be called with
    interrupts disabled, but if it sleeps then the next scheduled
    thread will probably turn interrupts back on. */
+
 void
 sema_down (struct semaphore *sema) 
 {
@@ -68,7 +79,8 @@ sema_down (struct semaphore *sema)
   old_level = intr_disable ();
   while (sema->value == 0) 
     {
-      list_push_back (&sema->waiters, &thread_current ()->elem);
+      list_insert_ordered(&sema->waiters, &thread_current()->elem, (list_less_func *)&priority_more, NULL);
+      //list_push_back (&sema->waiters, &thread_current ()->elem);
       thread_block ();
     }
   sema->value--;
