@@ -9,6 +9,7 @@
 #include "threads/thread.h"
   
 /* See [8254] for hardware details of the 8254 timer chip. */
+#define RECALC_FREQ 4
 
 #if TIMER_FREQ < 19
 #error 8254 timer requires TIMER_FREQ >= 19
@@ -198,17 +199,35 @@ timer_interrupt (struct intr_frame *args UNUSED)
   //struct list_elem *e;
   ticks++;
   thread_tick();
-  struct list_elem *e = list_begin(&sleep_list);
-  while(e!=list_end(&sleep_list))
+  
+  
+    if (thread_mlfqs)
+    {
+      mlfqs_increment();
+      if (ticks % TIMER_FREQ == 0)
+      {
+          mlfqs_load_avg();
+          mlfqs_recalc(); // Recalcs recent_cpu and priority
+      }
+      if (ticks % RECALC_FREQ == 0)
+      {
+        mlfqs_priority(thread_current());
+        
+      }
+    }
+    +  struct list_elem *e = list_begin(&sleep_list);
+  while (e != list_end(&sleep_list))
     {
       struct thread *t = list_entry(e, struct thread, elem);      
-      if (ticks < t->ticks){
-        return ;  
+      if (ticks < t->ticks)
+      {
+        break;
       }
       list_remove(e); // remove from sleep list
       thread_unblock(t); // Unblock and add to ready list
       e = list_begin(&sleep_list);
     }
+  test_max_priority(); // Tests if thread still has max priority
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer
