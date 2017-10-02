@@ -215,7 +215,7 @@ timer_interrupt (struct intr_frame *args UNUSED)
         
       }
     }
-    +  struct list_elem *e = list_begin(&sleep_list);
+      struct list_elem *e = list_begin(&sleep_list);
   while (e != list_end(&sleep_list))
     {
       struct thread *t = list_entry(e, struct thread, elem);      
