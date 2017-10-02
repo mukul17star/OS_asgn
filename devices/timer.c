@@ -17,6 +17,9 @@
 #error TIMER_FREQ <= 1000 recommended
 #endif
 
+/* List of processes sleeping */
+static struct list sleep_list;
+
 /* Number of timer ticks since OS booted. */
 static int64_t ticks;
 
@@ -103,6 +106,19 @@ timer_sleep (int64_t ticks)
   ASSERT (intr_get_level () == INTR_ON);
   while (timer_elapsed (start) < ticks) 
     thread_yield ();
+  thread_current()->ticks = ticks - timer_elapsed(start);
+  if (thread_current()->ticks <= 0)
+    {
+      thread_yield();
+      return;
+    }
+  /* Turn interrupts off temporarily to:
+     - add thread to sleep list
+     - block thread */
+  enum intr_level old_level = intr_disable ();
+  list_push_back(&sleep_list, &thread_current()->sleep_elem);
+  thread_block();
+  intr_set_level(old_level);
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -179,6 +195,19 @@ timer_print_stats (void)
 static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
+  struct list_elem *e;
+
+  for (e = list_begin(&sleep_list); e != list_end(&sleep_list);
+       e = list_next(e))
+    {
+      struct thread *t = list_entry(e, struct thread, sleep_elem);
+      t->ticks--;
+      if (t->ticks <= 0)
+ {
+   thread_unblock(t);
+   list_remove(&t->sleep_elem);
+ }
+    }
   ticks++;
   thread_tick ();
 }
