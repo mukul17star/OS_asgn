@@ -150,6 +150,6 @@ bool cmp_ticks (const struct list_elem *a,
 bool cmp_priority (const struct list_elem *a,
       const struct list_elem *b,
       void *aux UNUSED);
-+void refresh_ready_list (void);
+void refresh_ready_list (void);
 
 #endif /* threads/thread.h */
