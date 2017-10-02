@@ -99,15 +99,10 @@ void
 timer_sleep (int64_t ticks) 
 {
   int64_t start = timer_ticks ();
-  ticks+=start;
-  ASSERT (intr_get_level () == INTR_ON);
- thread_priority_temporarily_up();
-  // while (timer_elapsed (start) < ticks) 
-  //   thread_yield ();
 
-  thread_block_till(ticks);
-  thread_set_next_wakeup();
-  thread_priority_restore();
+  ASSERT (intr_get_level () == INTR_ON);
+  while (timer_elapsed (start) < ticks) 
+    thread_yield ();
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be

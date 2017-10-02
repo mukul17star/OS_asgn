@@ -89,15 +89,9 @@ struct thread
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
     struct list_elem allelem;           /* List element for all threads list. */
-    int stored_priority;
+
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
-    
-    //My changes
-    int old_priority;
-    int64_t wake_up;
-
-
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
@@ -132,27 +126,12 @@ const char *thread_name (void);
 void thread_exit (void) NO_RETURN;
 void thread_yield (void);
 
-
-//My Changes
-static bool priority_more(const struct list_elem * a, const struct list_elem * b, void * aux UNUSED);
-static bool sleep_less(const struct list_elem * a, const struct list_elem * b, void * aux UNUSED);
-void thread_block_till(int64_t wake_up);
-void thread_priority_temporarily_up(void);
-void thread_priority_restore(void);
-void thread_set_next_wakeup(void);
-
-
-
 /* Performs some operation on thread t, given auxiliary data AUX. */
 typedef void thread_action_func (struct thread *t, void *aux);
 void thread_foreach (thread_action_func *, void *);
 
-
-void thread_given_set_priority (struct thread *cur, int new_priority,bool is_donated);
 int thread_get_priority (void);
 void thread_set_priority (int);
-
-void thread_given_set_priority (struct thread *cur, int new_priority,bool is_donated);
 
 int thread_get_nice (void);
 void thread_set_nice (int);
