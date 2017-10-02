@@ -62,7 +62,7 @@ int sub_mixed(int x, int n)
 
 int mult_fp(int x, int n)
 {
-  return ((int64_t) x) * y / F;
+  return ((int64_t) x) * n / F;
 }
 
 int mult_mixed(int x, int n)

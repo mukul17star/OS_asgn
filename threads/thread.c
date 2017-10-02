@@ -740,6 +740,7 @@ void mlfqs_load_avg (void)
     {
       term2++;
     }
+  int term1 = div_mixed(int_to_fp(59), 60);
   term1 = mult_fp(term1, load_avg);
   term2 = div_mixed(int_to_fp(term2), 60);
   load_avg = add_fp(term1, term2);
