@@ -1,0 +1,5 @@
+FAIL
+Kernel panic in run: PANIC at ../../threads/thread.c:448 in thread_unblock(): assertion `t->status == THREAD_BLOCKED' failed.
+Call stack: 0xc0136f30
+Translation of call stack:
+0xc0136f30: (unknown)
