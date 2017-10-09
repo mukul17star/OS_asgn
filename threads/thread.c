@@ -119,13 +119,13 @@ thread_init (void)
 /*compartor for ready_list*/
 static bool th_before(const struct list_elem *a,const struct list_elem *b,void *aux UNUSED)
 {
-  return list_entry(a,struct thread,elem)->priority>list_entry(b,struct thread,elem)->priority; 
+	return list_entry(a,struct thread,elem)->priority>list_entry(b,struct thread,elem)->priority; 
 }
 
 /*comparator for sleeper_list*/
 static bool before(const struct list_elem *a,const struct list_elem *b,void *aux UNUSED)
 {
-  return list_entry(a,struct thread,elem)->wakeup_at < list_entry(b,struct thread,elem)->wakeup_at;
+	return list_entry(a,struct thread,elem)->wakeup_at < list_entry(b,struct thread,elem)->wakeup_at;
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -708,36 +708,36 @@ uint32_t thread_stack_ofs = offsetof (struct thread, stack);
 /* Store the original priority of the thread and set it's priority to max temporarily till it wakes up */
 void thread_set_temporarily_up(void)
 {
-  thread_current()->orig_priority = thread_current()->priority;    /* store the original priority of the thread before setting it to max temporaroly*/
-  thread_current()->priority=PRI_MAX;
+	thread_current()->orig_priority = thread_current()->priority;    /* store the original priority of the thread before setting it to max temporaroly*/
+	thread_current()->priority=PRI_MAX;
 }
 
 /* Restores the original priority of the thread which just wakes up from sleep*/
 void thread_restore(void)
 {
-  thread_current()->priority = thread_current()->orig_priority;
+	thread_current()->priority = thread_current()->orig_priority;
 }
 
 /* making the current thread go to sleep and updating it's wakeup time*/
 void thread_sleep(int64_t wakeup_at, int currentTime)
 {
   // disabling the interrupts
-  enum intr_level old_int=intr_disable();
+	enum intr_level old_int=intr_disable();
   struct thread *th = thread_current();
 
   /* if the current time is greater than the time when it is supposed to wake up, then it doesn't have to sleep. */
   if(currentTime >= wakeup_at) return;
-  
+	
   ASSERT(th->status == THREAD_RUNNING); 
-  th->wakeup_at = wakeup_at;       // setting the wakeup time of the thread.
-  list_insert_ordered(&sleeper_list, &(th->elem), before, NULL);   // insert it to the sleeper list
+	th->wakeup_at = wakeup_at;       // setting the wakeup time of the thread.
+	list_insert_ordered(&sleeper_list, &(th->elem), before, NULL);   // insert it to the sleeper list
 
   if(!list_empty(&sleeper_list))e_next_wakeup = list_entry(list_begin(&sleeper_list),struct thread,elem)->wakeup_at;
-  
-  thread_block(); 
+	
+  thread_block();	
   //enabling the interrupts
-  intr_set_level(old_int);
-} 
+	intr_set_level(old_int);
+}	
 
 /* wakes up the next sleeping thread if it's wakeup time is same as the current running thread.*/
 void

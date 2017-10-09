@@ -41,7 +41,6 @@
 
    - up or "V": increment the value (and wake up one waiting
      thread, if any). */
-
 void
 sema_init (struct semaphore *sema, unsigned value) 
 {
@@ -93,7 +92,7 @@ sema_down (struct semaphore *sema)
 
    This function may be called from an interrupt handler. */
 bool
-sema_try_down (struct semaphore *sema) 
+sema_try_down (struct semaphore *sema)   /*no need to go to waiting list of semaphore*/
 {
   enum intr_level old_level;
   bool success;
@@ -112,6 +111,7 @@ sema_try_down (struct semaphore *sema)
 
   return success;
 }
+
 /* sort the semaphore according to thread priority */
 void
 update_sema_list(struct semaphore *sema)
@@ -198,14 +198,13 @@ sema_test_helper (void *sema_)
    onerous, it's a good sign that a semaphore should be used,
    instead of a lock. */
 void
-lock_init (struct lock *lock)
+lock_init (struct lock *lock)                  /*initialize a lock*/    
 {
   ASSERT (lock != NULL);
 
   lock->holder = NULL;
-  lock->priority=0;  
-  sema_init (&lock->semaphore, 1);
-
+  lock->priority=0;                             /* initialise the lock's priority with 0 */
+  sema_init (&lock->semaphore, 1);             /*maximum one thread can acquire the lock*/
 }
 
 /* Acquires LOCK, sleeping until it becomes available if
@@ -268,7 +267,7 @@ lock_acquire (struct lock *lock)
 bool
 lock_try_acquire (struct lock *lock)
 {
-  bool success;
+   bool success;
 
   ASSERT (lock != NULL);
   ASSERT (!lock_held_by_current_thread (lock));
@@ -278,6 +277,8 @@ lock_try_acquire (struct lock *lock)
     lock->holder = thread_current ();
   return success;
 }
+
+
 
 /* Releases LOCK, which must be owned by the current thread.
 
@@ -348,6 +349,7 @@ cond_sema_priority_large (const struct list_elem *a, const struct list_elem *b, 
   return ta->priority > tb->priority;
 }
 
+
 /* Atomically releases LOCK and waits for COND to be signaled by
    some other piece of code.  After COND is signaled, LOCK is
    reacquired before returning.  LOCK must be held before calling
@@ -368,7 +370,6 @@ cond_sema_priority_large (const struct list_elem *a, const struct list_elem *b, 
    interrupt handler.  This function may be called with
    interrupts disabled, but interrupts will be turned back on if
    we need to sleep. */
-//t02 task3
 void
 cond_wait (struct condition *cond, struct lock *lock) 
 {
@@ -424,4 +425,3 @@ cond_broadcast (struct condition *cond, struct lock *lock)
   while (!list_empty (&cond->waiters))
     cond_signal (cond, lock);
 }
-
