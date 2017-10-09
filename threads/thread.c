@@ -26,10 +26,10 @@
    that are ready to run but not actually running. */
 static struct list ready_list;
 
+
+/* list containing sleeping threads */
 static struct list sleeper_list;
-
-
-/* List of all processes.  Processes are added to this lhread_setist
+/* List of all processes.  Processes are added to this list
    when they are first scheduled and removed when they exit. */
 static struct list all_list;
 
@@ -99,8 +99,6 @@ static struct thread *managerial_thread2;     /* managerial thread which manages
 
    It is not safe to call thread_current() until this function
    finishes. */
-
-
 void
 thread_init (void) 
 {
@@ -108,8 +106,9 @@ thread_init (void)
 
   lock_init (&tid_lock);
   list_init (&ready_list);
-  list_init (&sleeper_list);
+  list_init(&sleeper_list);
   list_init (&all_list);
+
   /* Set up a thread structure for the running thread. */
   initial_thread = running_thread ();
   init_thread (initial_thread, "main", PRI_DEFAULT);
@@ -134,11 +133,13 @@ static bool before(const struct list_elem *a,const struct list_elem *b,void *aux
 void
 thread_start (void) 
 {
-   e_next_wakeup=-100;
+  e_next_wakeup=-100;
   load_avg = 0;
+
   /* Create the idle thread. */
   struct semaphore idle_started;
   sema_init (&idle_started, 0);
+  
   thread_create ("idle", PRI_MIN, idle, &idle_started);
 
   /* Start preemptive thread scheduling. */
@@ -146,6 +147,7 @@ thread_start (void)
 
   /* Wait for the idle thread to initialize idle_thread. */
   sema_down (&idle_started);
+
   thread_create("managerial_thread", PRI_MAX, managerial_thread_work, NULL);      /* Managerial thread is created in the starting when the thread_start is called*/
   thread_create("managerial_thread2", PRI_MAX, managerial_thread_work2, NULL);      /* Managerial thread is created in the starting when the thread_start is called*/
 }
@@ -174,7 +176,6 @@ void
 thread_tick (void) 
 {
   struct thread *t = thread_current ();
-
   /* Update statistics. */
   if (t == idle_thread)
     idle_ticks++;
@@ -297,12 +298,8 @@ thread_create (const char *name, int priority,
 
   thread_check_prio();
 
-
-  //intr_set_level(old_level);
-
   return tid;
 }
-
 
 /* Puts the current thread to sleep.  It will not be scheduled
    again until awoken by thread_unblock().
@@ -337,10 +334,8 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
- // list_push_back (&ready_list, &t->elem);
-  list_insert_ordered(&ready_list,&t->elem,th_before,NULL);
-   
- t->status = THREAD_READY;
+  list_insert_ordered (&ready_list, &t->elem,th_before, NULL);
+  t->status = THREAD_READY;
   intr_set_level (old_level);
 }
 
@@ -409,10 +404,8 @@ thread_yield (void)
   ASSERT (!intr_context ());
 
   old_level = intr_disable ();
-  if (cur != idle_thread) {
-  //  list_push_back (&ready_list, &cur->elem);
- list_insert_ordered(&ready_list,&cur->elem,th_before,NULL);
-}
+  if (cur != idle_thread) 
+    list_insert_ordered (&ready_list, &cur->elem,th_before,NULL);
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -439,7 +432,7 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
-    enum intr_level old_level = intr_disable ();
+  enum intr_level old_level = intr_disable ();
   struct thread *t = thread_current();
   int basePrio = t->priority; 
   t->orig_priority = t->priority; 
@@ -464,19 +457,23 @@ thread_get_priority (void)
 
 /* Sets the current thread's nice value to NICE. */
 void
-thread_set_nice (int nice UNUSED) 
+thread_set_nice (int nice ) 
 {
-  /* Not yet implemented. */
+  //enum intr_level old_level = intr_disable ();
   thread_current ()->nice = nice;
+  //mlfqs_priority (thread_current ());
+  //thread_check_prio ();
+  //intr_set_level (old_level);
 }
 
 /* Returns the current thread's nice value. */
 int
 thread_get_nice (void) 
 {
-  /* Not yet implemented. */
+  //enum intr_level old_level = intr_disable ();
+  //int nice = thread_current ()->nice;
+  //intr_set_level (old_level);
   return thread_current ()->nice;
-  
 }
 
 /* Returns 100 times the system load average. */
@@ -487,7 +484,6 @@ thread_get_load_avg (void)
   int load_avg_nearest = convert_x_to_integer_nearest (multiply_x_by_n (load_avg, 100) );
   intr_set_level (old_level);
   return load_avg_nearest;
-  return 0;
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
@@ -499,7 +495,6 @@ thread_get_recent_cpu (void)
   intr_set_level (old_level);
   return recent_cpu_nearest;
 }
-
 
 /* Idle thread.  Executes when no other thread is ready to run.
 
@@ -513,6 +508,8 @@ thread_get_recent_cpu (void)
 static void
 idle (void *idle_started_ UNUSED) 
 {
+
+
   struct semaphore *idle_started = idle_started_;
   idle_thread = thread_current ();
   sema_up (idle_started);
@@ -708,37 +705,24 @@ allocate_tid (void)
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
 
-//change
 /* Store the original priority of the thread and set it's priority to max temporarily till it wakes up */
-
-void
-thread_set_temporarily_up(void)
+void thread_set_temporarily_up(void)
 {
-  struct thread *ptr = thread_current();
-  ptr->orig_priority = ptr->priority;
-  ptr->priority = 63;
-  return;
+  thread_current()->orig_priority = thread_current()->priority;    /* store the original priority of the thread before setting it to max temporaroly*/
+  thread_current()->priority=PRI_MAX;
 }
 
 /* Restores the original priority of the thread which just wakes up from sleep*/
-void
-thread_restore(void)
+void thread_restore(void)
 {
-  struct thread *ptr=thread_current();
-  ptr->priority = ptr->orig_priority;
-  return;
+  thread_current()->priority = thread_current()->orig_priority;
 }
 
-
-
-//task2
-
-
 /* making the current thread go to sleep and updating it's wakeup time*/
-void thread_sleep(int64_t wakeup,int currentTime)
+void thread_sleep(int64_t wakeup_at, int currentTime)
 {
-  enum intr_level old_level;
-  struct thread *cur = thread_current();
+  // disabling the interrupts
+  enum intr_level old_int=intr_disable();
   struct thread *th = thread_current();
 
   /* if the current time is greater than the time when it is supposed to wake up, then it doesn't have to sleep. */
@@ -753,12 +737,11 @@ void thread_sleep(int64_t wakeup,int currentTime)
   thread_block(); 
   //enabling the interrupts
   intr_set_level(old_int);
-}
-
-//task 3
+} 
 
 /* wakes up the next sleeping thread if it's wakeup time is same as the current running thread.*/
-void set_next_wakeup(void)
+void
+set_next_wakeup(void)
 {
   if(!list_empty(&sleeper_list)) // sleeper list is not empty
   {
@@ -771,8 +754,8 @@ void set_next_wakeup(void)
       thread_unblock(th2);
     }
   }
+  return;
 }
-
 
 /* Check if the thread which was in waiting list of sema has greater priority than the current running thread, yield*/
 void thread_check_prio(void)
@@ -884,13 +867,11 @@ thread_add_lock (struct lock *lock)
 
   intr_set_level (old_level);
 }
-//end change
 
 /* the function which runs when the managerial thread is in running state.
   All the sleeping threads which need to be waked up are unblocked. */
 static void
 managerial_thread_work (void *AUX) 
-
 {
   managerial_thread = thread_current ();
   

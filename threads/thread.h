@@ -3,7 +3,7 @@
 
 #include <debug.h>
 #include <list.h>
-#include <threads/synch.h>
+#include <stdint.h>
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -87,10 +87,9 @@ struct thread
     enum thread_status status;          /* Thread state. */
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
-    int priority;                       /* Priority. */
-    //change
     int orig_priority;                  /*original priority*/
     int64_t wakeup_at;                  /*wakeup time*/
+    int priority;                       /* Priority. */
     int initial_priority;               /* Original Priority before donation (locks).  */
     struct list_elem allelem;           /* List element for all threads list. */
     int recent_cpu;
@@ -107,17 +106,6 @@ struct thread
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
-  //changed t02 task 4
-  bool is_donated;
-  struct lock *lock_blocked_by;
-  struct list locks;
-  int child_load_status;
-  struct lock lock_child;
-  struct condition cond_child;
-  struct list children; 
-  //int nice;                             /* Thread nice value */
-  //int recent_cpu; 
-  //end
   };
 
 /* If false (default), use round-robin scheduler.
@@ -155,8 +143,6 @@ int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
-
-//change
 void thread_set_temporarily_up(void);
 void thread_sleep(int64_t,int);
 void thread_restore(void);
@@ -179,6 +165,5 @@ void mlfqs_recalculate (void);
 void mlfqs_increment (void);
 
 static void managerial_thread_work2(void *AUX);
-
 
 #endif /* threads/thread.h */
