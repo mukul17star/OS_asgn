@@ -1,76 +1,24 @@
-/* Assume that x and y are fixed-point numbers, and n is an integer. */
-/* Fixed point numbers are in signed p : q format, where p + q = 31, and f is 1 << q. */
-/* As in B.6 Fixed-Point Real Arithmetic, we assume p = 17, q = 14 here. */
+#ifndef THREADS_FIXED_POINT_H
+#define THREADS_FIXED_POINT_H
 
-#define f (1 << 14)
-#define INT_MAX ((1 << 31) - 1)
-#define INT_MIN (-(1 << 31))
+#define P 17
+#define Q 14
+#define FRACTION 1 << (Q)
 
-int 
-convert_n_to_fixed_point (int n)
-{
-  return n * f;
-}
+/* Fixed-point real arithmetic */
+/* Here x and y are fixed-point number, n is an integer */
+#define CONVERT_TO_FP(n) (n) * (FRACTION)
+#define CONVERT_TO_INT_ZERO(x) (x) / (FRACTION)
+#define CONVERT_TO_INT_NEAREST(x) ((x) >= 0 ? ((x) + (FRACTION) / 2)\
+                                   / (FRACTION) : ((x) - (FRACTION) / 2)\
+                                   / (FRACTION))
+#define ADD(x, y) (x) + (y)
+#define SUB(x, y) (x) - (y)
+#define ADD_INT(x, n) (x) + (n) * (FRACTION)
+#define SUB_INT(x, n) (x) - (n) * (FRACTION)
+#define MULTIPLE(x, y) ((int64_t)(x)) * (y) / (FRACTION)
+#define MULT_INT(x, n) (x) * (n)
+#define DIVIDE(x, y) ((int64_t)(x)) * (FRACTION) / (y)
+#define DIV_INT(x, n) (x) / (n)
 
-int 
-convert_x_to_integer_zero (int x)
-{
-  return x / f;
-}
-
-int 
-convert_x_to_integer_nearest (int x)
-{
-  if (x >= 0)
-    return (x + f / 2) / f;
-  else	
-    return (x - f / 2) / f;
-}
-
-int 
-add_x_and_y(int x, int y)
-{
-  return x + y;
-}
-
-int 
-substract_y_from_x (int x, int y)
-{
-  return x - y;
-}
-
-int 
-add_x_and_n (int x, int n)
-{
-  return x + n * f;	
-}
-
-int 
-substract_n_from_x (int x, int n)
-{
-  return x - n * f; 
-}
-
-int 
-multiply_x_by_y (int x, int y)
-{
-  return ((int64_t)x) * y / f;
-}
-
-int 
-multiply_x_by_n (int x, int y)
-{
-  return x * y;
-}
-
-int 
-divide_x_by_y (int x, int y)
-{
-  return ((int64_t)x) * f / y;	
-}
-
-int 
-divide_x_by_n (int x, int y)
-{
-  return x / y;
-}
+#endif
