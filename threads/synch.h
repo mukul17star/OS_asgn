@@ -20,11 +20,11 @@ void sema_self_test (void);
 /* Lock. */
 struct lock 
   {
+    struct list_elem elem;
     struct thread *holder;      /* Thread holding lock (for debugging). */
     struct semaphore semaphore; /* Binary semaphore controlling access. */
+    int priority;
     
-    struct list_elem elem_lock;
-    int priority_lock;
 
   };
 
@@ -45,10 +45,10 @@ void cond_wait (struct condition *, struct lock *);
 void cond_signal (struct condition *, struct lock *);
 void cond_broadcast (struct condition *, struct lock *);
 //t02
-bool sema_compare( struct list_elem *,struct list_elem *,void *);
-static bool lock_priority_more ( struct list_elem *,
+//bool sema_compare( struct list_elem *,struct list_elem *,void *);
+/*static bool lock_priority_more ( struct list_elem *,
                                  struct list_elem *,
-                                void *);
+                                void *);*/
 /* Optimization barrier.
 
    The compiler will not reorder operations across an
