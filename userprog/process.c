@@ -329,7 +329,7 @@ load (const char *file_name, void (**eip) (void), void **esp,
     }
 
   /* Set up stack. */
-  if (!setup_stack (esp))
+  if (!setup_stack (esp,file_name, save_ptr))
     goto done;
 
   /* Start address. */
@@ -339,7 +339,9 @@ load (const char *file_name, void (**eip) (void), void **esp,
 
  done:
   /* We arrive here whether the load is successful or not. */
+  test_stack(*esp);
   file_close (file);
+  
   return success;
 }
 
@@ -454,7 +456,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 /* Create a minimal stack by mapping a zeroed page at the top of
    user virtual memory. */
 static bool
-setup_stack (void **esp) 
+setup_stack (void **esp, const char* file_name, char** save_ptr) 
 {
   uint8_t *kpage;
   bool success = false;
@@ -466,8 +468,68 @@ setup_stack (void **esp)
       if (success)
         *esp = PHYS_BASE;
       else
+      {
         palloc_free_page (kpage);
+        return success;
+      }
     }
+
+  // First push args onto the stack.
+  // Then align according to word size.
+  // Then push the starting address of each 
+  // arg passed.
+  // Then push no of arguments from argc.
+  // Push the return address. 
+  // Free the memory allocated (using malloc)
+  // to argv.
+  
+  char *token;
+  char **argv = malloc(2*sizeof(char *));
+  int i, argc = 0, argv_size = 2;
+
+  for (token = (char *) file_name; token != NULL;
+       token = strtok_r (NULL, " ", save_ptr))
+    {
+      *esp -= strlen(token) + 1;
+      argv[argc] = *esp;
+      argc++;
+      
+      if (argc >= argv_size)
+      {
+        argv_size *= 2;
+        argv = realloc(argv, argv_size*sizeof(char *));
+      }
+      memcpy(*esp, token, strlen(token) + 1);
+    }
+  
+  argv[argc] = 0;
+
+  //Allign
+  i = (size_t) *esp % 4;
+  if (i)
+    {
+      *esp -= i;
+      memcpy(*esp, &argv[argc], i);
+    }
+ 
+  for (i = argc; i >= 0; i--)
+    {
+      *esp -= sizeof(char *);
+      memcpy(*esp, &argv[i], sizeof(char *));
+    }
+  
+  token = *esp;
+  *esp -= sizeof(char **);
+  memcpy(*esp, &token, sizeof(char **));
+  
+  *esp -= sizeof(int);
+  memcpy(*esp, &argc, sizeof(int));
+  
+  *esp -= sizeof(void *);
+  memcpy(*esp, &argv[argc], sizeof(void *));
+  
+  free(argv);
+ 
   return success;
 }
 
