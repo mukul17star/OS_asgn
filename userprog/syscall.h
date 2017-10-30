@@ -11,7 +11,7 @@ struct child_process {
   int status;
   struct lock wait_lock;
   struct list_elem elem;	
-}
+};
 
 //void syscall_init (void);
 
