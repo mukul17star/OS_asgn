@@ -105,7 +105,7 @@ struct thread
     struct list child_list;
     tid_t parent;
     struct child_process* cp;
-    
+
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
@@ -172,5 +172,7 @@ void mlfqs_recalculate (void);
 void mlfqs_increment (void);
 
 static void managerial_thread_work2(void *AUX);
+
+bool thread_alive (int pid);
 
 #endif /* threads/thread.h */
