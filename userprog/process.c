@@ -208,6 +208,9 @@ struct Elf32_Phdr
 #define PF_W 2          /* Writable. */
 #define PF_R 4          /* Readable. */
 
+#define WORD_SIZE 4
+#define DEFAULT_ARGV 2
+
 static bool setup_stack (void **esp, const char* file_name,
        char** save_ptr);
 static bool validate_segment (const struct Elf32_Phdr *, struct file *);
@@ -504,7 +507,7 @@ setup_stack (void **esp, const char* file_name, char** save_ptr)
   
   argv[argc] = 0;
 
-  //Allign
+  //Allign to word size(4 bytes)
   i = (size_t) *esp % 4;
   if (i)
     {
@@ -517,18 +520,21 @@ setup_stack (void **esp, const char* file_name, char** save_ptr)
       *esp -= sizeof(char *);
       memcpy(*esp, &argv[i], sizeof(char *));
     }
-  
-  token = *esp;
-  *esp -= sizeof(char **);
-  memcpy(*esp, &token, sizeof(char **));
-  
-  *esp -= sizeof(int);
-  memcpy(*esp, &argc, sizeof(int));
-  
-  *esp -= sizeof(void *);
-  memcpy(*esp, &argv[argc], sizeof(void *));
-  
-  free(argv);
+  // Push argv
+    token = *esp;
+    *esp -= sizeof(char **);
+    memcpy(*esp, &token, sizeof(char **));    
+    // Push argc
+    *esp -= sizeof(int);
+    memcpy(*esp, &argc, sizeof(int));
+    // Push fake return addr
+    *esp -= sizeof(void *);
+    memcpy(*esp, &argv[argc], sizeof(void *));
+    // Free argv
+    free(argv);
+
+    // Use for debugging
+    hex_dump(0, *esp, (int) ((size_t) PHYS_BASE - (size_t) *esp), true);
  
   return success;
 }
