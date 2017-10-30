@@ -93,6 +93,16 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
+   int i;
+  int j;
+  int k;
+  int l;
+  int m;
+  for(i = 0; i<10000; i++)
+  for(j = 0; j<10000; j++)
+  for(k = 0; j<10000; j++)
+  for(l = 0; j<10000; j++)
+  for(m = 0; j<10000; j++);
   return -1;
 }
 
