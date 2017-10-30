@@ -89,22 +89,25 @@ struct thread
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
     struct list_elem allelem;           /* List element for all threads list. */
+
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
-    int64_t wakeup_at;                  /*wakeup time*/
-    
-    int orig_priority;                  /*original priority*/
-    int initial_priority;               /* Original Priority before donation (locks).  */
-    int recent_cpu;
-    int nice;
-    struct list locks_acquired;         /*All locks acquired currently by the thread*/
-    struct lock *lock_seeking;               /* the lock, thread is seeking*/
+    int64_t wakeup_at;
 
+    int init_priority;
+    struct lock *wait_on_lock;
+    struct list acquired_locks;
+    struct list donations;
+    struct list_elem donation_elem;
+    int nice;
+    int recent_cpu;
+    
     struct list file_list;
     int fd;
     struct list child_list;
     tid_t parent;
     struct child_process* cp;
+
 
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
@@ -125,7 +128,7 @@ void thread_start (void);
 
 void thread_tick (void);
 void thread_print_stats (void);
-
+void test_max_priority (void);
 typedef void thread_func (void *aux);
 tid_t thread_create (const char *name, int priority, thread_func *, void *);
 
@@ -150,29 +153,16 @@ int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
-void thread_set_temporarily_up(void);
-void thread_sleep(int64_t,int);
-void thread_restore(void);
-void set_next_wakeup(void);
-void thread_check_prio(void);
-void thread_wakeup (int64_t);
-void update_ready_list(void);
 
-
-void thread_add_lock (struct lock *);
-void thread_remove_lock (struct lock *);
-void thread_donate_priority (struct thread *);
-void thread_update_priority (struct thread *);
-
-/* Utilities for 4.4BSD Scheduler. */
-void mlfqs_priority (struct thread *t);
-void mlfqs_recent_cpu (struct thread *t);
-void mlfqs_load_avg (void);
-void mlfqs_recalculate (void);
-void mlfqs_increment (void);
-
-static void managerial_thread_work2(void *AUX);
-
+bool before (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
+bool cmp (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
+void thread_set_next_wakeup (struct thread* cur,int64_t wakeup_at);
+void thread_priority_temporarily_up (struct thread* cur);
+void thread_priority_restore (struct thread* cur,int prev_prior);
+void thread_block_till (struct thread* cur,int64_t wakeup_at, list_less_func *before, int prev_prior);
+void donate_priority (void);
+void remove_with_lock (struct lock *lock);
+void refresh_priority (void);
 bool thread_alive (int pid);
 
 #endif /* threads/thread.h */
