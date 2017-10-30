@@ -20,7 +20,8 @@
 #include "threads/vaddr.h"
 
 static thread_func start_process NO_RETURN;
-static bool load (const char *cmdline, void (**eip) (void), void **esp, char** save_ptr);
+static bool load (const char *cmdline, void (**eip) (void), void **esp,
+      char** save_ptr);
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -101,6 +102,7 @@ process_wait (tid_t child_tid UNUSED)
   for(k = 0; j<10000; j++)
   for(l = 0; j<10000; j++)
   for(m = 0; j<10000; j++);
+  // while(1); 
   return -1;
 }
 
@@ -208,9 +210,6 @@ struct Elf32_Phdr
 #define PF_W 2          /* Writable. */
 #define PF_R 4          /* Readable. */
 
-#define WORD_SIZE 4
-#define DEFAULT_ARGV 2
-
 static bool setup_stack (void **esp, const char* file_name,
        char** save_ptr);
 static bool validate_segment (const struct Elf32_Phdr *, struct file *);
@@ -230,13 +229,14 @@ static void test_stack(int *t)
   for (i = 0; i < argc; i++)
     printf("Argv[%d] = %x pointing at %s\n", i, (unsigned int)argv[i], argv[i]);
 }
+
 /* Loads an ELF executable from FILE_NAME into the current thread.
    Stores the executable's entry point into *EIP
    and its initial stack pointer into *ESP.
    Returns true if successful, false otherwise. */
 bool
-load (const char *file_name, void (**eip) (void), void **esp,
-        char **save_ptr ) 
+load(const char *file_name, void (**eip) (void), void **esp,
+      char **save_ptr)  
 {
   struct thread *t = thread_current ();
   struct Elf32_Ehdr ehdr;
@@ -332,7 +332,7 @@ load (const char *file_name, void (**eip) (void), void **esp,
     }
 
   /* Set up stack. */
-  if (!setup_stack (esp,file_name, save_ptr))
+  if (!setup_stack (esp, file_name, save_ptr))
     goto done;
 
   /* Start address. */
@@ -342,9 +342,8 @@ load (const char *file_name, void (**eip) (void), void **esp,
 
  done:
   /* We arrive here whether the load is successful or not. */
-  test_stack(*esp);
+  // test_stack (*esp);
   file_close (file);
-  
   return success;
 }
 
@@ -507,7 +506,7 @@ setup_stack (void **esp, const char* file_name, char** save_ptr)
   
   argv[argc] = 0;
 
-  //Allign to word size(4 bytes)
+  //Allign
   i = (size_t) *esp % 4;
   if (i)
     {
@@ -520,21 +519,18 @@ setup_stack (void **esp, const char* file_name, char** save_ptr)
       *esp -= sizeof(char *);
       memcpy(*esp, &argv[i], sizeof(char *));
     }
-  // Push argv
-    token = *esp;
-    *esp -= sizeof(char **);
-    memcpy(*esp, &token, sizeof(char **));    
-    // Push argc
-    *esp -= sizeof(int);
-    memcpy(*esp, &argc, sizeof(int));
-    // Push fake return addr
-    *esp -= sizeof(void *);
-    memcpy(*esp, &argv[argc], sizeof(void *));
-    // Free argv
-    free(argv);
-
-    // Use for debugging
-    hex_dump(0, *esp, (int) ((size_t) PHYS_BASE - (size_t) *esp), true);
+  
+  token = *esp;
+  *esp -= sizeof(char **);
+  memcpy(*esp, &token, sizeof(char **));
+  
+  *esp -= sizeof(int);
+  memcpy(*esp, &argc, sizeof(int));
+  
+  *esp -= sizeof(void *);
+  memcpy(*esp, &argv[argc], sizeof(void *));
+  
+  free(argv);
  
   return success;
 }
