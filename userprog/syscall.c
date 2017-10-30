@@ -19,8 +19,28 @@
 
 static void syscall_handler (struct intr_frame *);
 
+void exit (int status){
+	struct thread *cur = thread_current();
+	if(thread_alive(cur->parent)){
+		cur->cp->status = status;
+	}
+	int i=0;
+
+	while(cur>name[i] != '\0'){
+		if(cur->name[i]== ' ')
+			cur->name[i]='\0';
+		i++;
+
+	}
+
+	printf("%s: exit(%d)\n", cur->name, status);
+	cur->name[i]= ' ';
+	thread_exit();
+}
+
 int write_stdout (int fd, void *buffer, unsigned size){
-	if(fd == 1){
+	if(fd == 1)
+	{
 		putbuf(buffer, size);
 		return size;
 	}
@@ -66,6 +86,22 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f UNUSED) 
 {
-  printf ("system call!\n");
-  thread_exit ();
+    int arg[MAX_ARGS];
+  switch (*(int *) f->esp)
+    {
+	    case SYS_HALT:
+	  		check_valid_ptr((void*) f->esp);
+			power_off();
+			break;
+	    case SYS_EXIT:	      
+		  	check_valid_ptr((void*) f->esp);
+			get_arg(f, &arg[0], 1);
+			exit(arg[0]);
+			break;	    
+	    case SYS_WRITE:     
+			get_arg(f, &arg[0], 3);
+			void *temp = user_to_kernel_ptr((void *) arg[1]);
+			f->eax = write_stdout(arg[0], temp, (unsigned) arg[2]);
+			break;    
+    }
 }
