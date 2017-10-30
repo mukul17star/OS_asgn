@@ -19,51 +19,59 @@
 
 static void syscall_handler (struct intr_frame *);
 
-void exit (int status){
-	struct thread *cur = thread_current();
-	if(thread_alive(cur->parent)){
-		cur->cp->status = status;
-	}
-	int i=0;
+void exit (int status)
+{
+  struct thread *cur = thread_current();
+  if (thread_alive(cur->parent))
+    {
+      cur->cp->status = status;
+    }
 
-	while(cur>name[i] != '\0'){
-		if(cur->name[i]== ' ')
-			cur->name[i]='\0';
-		i++;
+  int i = 0;
 
-	}
+  while(cur->name[i] != '\0')
+  {
+  	if(cur->name[i] == ' ')
+  		cur->name[i] = '\0';
+  	i++;
+  }
 
-	printf("%s: exit(%d)\n", cur->name, status);
-	cur->name[i]= ' ';
-	thread_exit();
+  printf ("%s: exit(%d)\n", cur->name, status);
+  cur->name[i] = ' ';
+  thread_exit();
 }
 
-int write_stdout (int fd, void *buffer, unsigned size){
-	if(fd == 1)
-	{
-		putbuf(buffer, size);
-		return size;
-	}
-	return 0;
+int write_stdout (int fd, void *buffer, unsigned size)
+{
+  if (fd == 1)
+    {
+      putbuf(buffer, size);
+      return size;
+    }
+
+    return 0;
 }
 
-void check_valid_ptr (void *vaddr){
-	if(!is_user_vaddr(vaddr) || vaddr < USER_VADDR_BOTTOM)
-	{
-		exit(-1);
-	}
+void check_valid_ptr (void *vaddr)
+{
+  if (!is_user_vaddr(vaddr) || vaddr < USER_VADDR_BOTTOM)
+    {
+      exit(-1);
+    }
 }
 
-void* user_to_kernel_ptr (void *vaddr){
-
-	check_valid_ptr(vaddr);
-	void *ptr=pagedir_get_page(thread_current()->pagedir, vaddr);
-	if(!ptr)
-	{
-		exit(-1);
-	}
-	return ptr;
+void* user_to_kernel_ptr(void *vaddr)
+{
+  
+  check_valid_ptr(vaddr);
+  void *ptr = pagedir_get_page(thread_current()->pagedir, vaddr);
+  if (!ptr)
+    {
+      exit(-1);
+    }
+  return ptr;
 }
+
 
 void get_arg (struct intr_frame *f, int *arg, int n)
 {
@@ -86,7 +94,7 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f UNUSED) 
 {
-    int arg[MAX_ARGS];
+  int arg[MAX_ARGS];
   switch (*(int *) f->esp)
     {
 	    case SYS_HALT:
@@ -105,3 +113,5 @@ syscall_handler (struct intr_frame *f UNUSED)
 			break;    
     }
 }
+
+
