@@ -87,18 +87,25 @@ struct thread
     enum thread_status status;          /* Thread state. */
     char name[16];                      /* Name (for debugging purposes). */
     uint8_t *stack;                     /* Saved stack pointer. */
-    int orig_priority;                  /*original priority*/
-    int64_t wakeup_at;                  /*wakeup time*/
     int priority;                       /* Priority. */
-    int initial_priority;               /* Original Priority before donation (locks).  */
     struct list_elem allelem;           /* List element for all threads list. */
-    int recent_cpu;
-    int nice;
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
+    int64_t wakeup_at;                  /*wakeup time*/
+    
+    int orig_priority;                  /*original priority*/
+    int initial_priority;               /* Original Priority before donation (locks).  */
+    int recent_cpu;
+    int nice;
     struct list locks_acquired;         /*All locks acquired currently by the thread*/
     struct lock *lock_seeking;               /* the lock, thread is seeking*/
 
+    struct list file_list;
+    int fd;
+    struct list child_list;
+    tid_t parent;
+    struct child_process* cp;
+    
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
