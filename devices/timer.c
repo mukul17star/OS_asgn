@@ -17,7 +17,6 @@
 #error TIMER_FREQ <= 1000 recommended
 #endif
 
-#define RECALCULATION_FREQ 4
 /* Number of timer ticks since OS booted. */
 static int64_t ticks;
 
@@ -99,22 +98,31 @@ timer_elapsed (int64_t then)
 void
 timer_sleep (int64_t ticks) 
 {
-  int64_t start = timer_ticks ();/* The time at which timer_sleep is called. */
-  int64_t wakeup = start+ticks; 
-  //enum intr_level old_level;
+  int64_t start = timer_ticks ();
+  int64_t wakeup_at = start+ticks;
 
   ASSERT (intr_get_level () == INTR_ON);
-   //thread_priority_temporarily_up();
-   //thread_block_till(start+ticks);
- 
- // send the thread to sleeping state and adds to the sleeper list
-  thread_sleep(wakeup,start);
- 
-   //thread_set_next_wakeup();
-   //thread_priority_restore();
   
-  //thread_sleep(ticks);
 
+  if(ticks == 0) thread_yield();
+  else{
+  struct thread *cur = thread_current ();
+  int prev_prior = cur->priority;
+  
+  // printf("timer sleep :: %s :: %d\n", thread_current()->name, wakeup_at);
+  cur->wakeup_at = wakeup_at;
+  // printf("110 : %d %d\n ",wakeup_at, cur->wakeup_at);
+  thread_set_next_wakeup (cur,wakeup_at);
+  // printf("111 : %d %d\n ",wakeup_at, cur->wakeup_at);
+  thread_priority_temporarily_up (cur);
+  // printf("113 : %d %d\n ",wakeup_at, cur->wakeup_at);
+
+  thread_block_till (cur,wakeup_at, cmp ,prev_prior);  // gadbad hai
+  // printf("116 : %d %d\n ",wakeup_at, cur->wakeup_at);
+
+  thread_priority_restore (cur,prev_prior);}
+  // while (timer_elapsed (start) < ticks) 
+  //   thread_yield ();
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
