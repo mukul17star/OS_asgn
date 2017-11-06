@@ -5,6 +5,11 @@
 #include <list.h>
 #include <stdint.h>
 
+/* My Implementation */
+#include "threads/alarm.h"
+#include "threads/synch.h"
+/* == My Implementation */
+
 /* States in a thread's life cycle. */
 enum thread_status
   {
@@ -23,6 +28,16 @@ typedef int tid_t;
 #define PRI_MIN 0                       /* Lowest priority. */
 #define PRI_DEFAULT 31                  /* Default priority. */
 #define PRI_MAX 63                      /* Highest priority. */
+
+/* My Implementation */
+#define NICE_MAX 20
+#define NICE_DEFAULT 0
+#define NICE_MIN -20
+
+#ifdef USERPROG
+# define RET_STATUS_DEFAULT 0xcdcdcdcd
+#endif
+/* == My Implementation */
 
 /* A kernel thread or user process.
 
@@ -92,26 +107,27 @@ struct thread
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
-    int64_t wakeup_at;
-
-    int init_priority;
-    struct lock *wait_on_lock;
-    struct list acquired_locks;
-    struct list donations;
-    struct list_elem donation_elem;
-    int nice;
-    int recent_cpu;
     
-    struct list file_list;
-    int fd;
-    struct list child_list;
-    tid_t parent;
-    struct child_process* cp;
-
-
+    /* My Implementation */
+    struct alarm alrm;                  /* alarm object */
+    int base_priority;                  /* priority before donate, if nobody donates, then it should be same as priority */
+    struct list locks;                  /* the list of locks that it holds */
+    bool donated;                       /* whether the thread has been donated priority */
+    struct lock *blocked;               /* by which lock this thread is blocked */
+    
+    int nice;                           /* nice value of a thread */
+    int recent_cpu;                     /* recent cpu usage */
+    /* == My Implementation */
+    
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
+    
+    /* My Implementation */
+    struct semaphore wait;              /* semaphore for process_wait */
+    int ret_status;                     /* return status */
+    struct list files;                  /* all opened files */
+    /* == My Implementation */
 #endif
 
     /* Owned by thread.c. */
@@ -128,7 +144,7 @@ void thread_start (void);
 
 void thread_tick (void);
 void thread_print_stats (void);
-void test_max_priority (void);
+
 typedef void thread_func (void *aux);
 tid_t thread_create (const char *name, int priority, thread_func *, void *);
 
@@ -146,6 +162,19 @@ void thread_yield (void);
 typedef void thread_action_func (struct thread *t, void *aux);
 void thread_foreach (thread_action_func *, void *);
 
+/* My Implementation */
+void sort_thread_list (struct list *l);
+void thread_set_priority_other (struct thread *curr, int new_priority, bool forced);
+void thread_yield_head (struct thread *curr);
+
+void thread_calculate_load_avg (void);
+void thread_calculate_recent_cpu (void);
+void thread_calculate_priority (void);
+void thread_calculate_recent_cpu_for_all (void);
+void thread_calculate_priority_for_all (void);
+struct thread *get_thread_by_tid (tid_t);
+/* == My Implementation */
+
 int thread_get_priority (void);
 void thread_set_priority (int);
 
@@ -153,16 +182,5 @@ int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
-
-bool before (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
-bool cmp (const struct list_elem *a, const struct list_elem *b, void *aux UNUSED);
-void thread_set_next_wakeup (struct thread* cur,int64_t wakeup_at);
-void thread_priority_temporarily_up (struct thread* cur);
-void thread_priority_restore (struct thread* cur,int prev_prior);
-void thread_block_till (struct thread* cur,int64_t wakeup_at, list_less_func *before, int prev_prior);
-void donate_priority (void);
-void remove_with_lock (struct lock *lock);
-void refresh_priority (void);
-bool thread_alive (int pid);
 
 #endif /* threads/thread.h */
