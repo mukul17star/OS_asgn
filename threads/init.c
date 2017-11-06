@@ -23,7 +23,6 @@
 #include "threads/thread.h"
 /* My Implementation */
 #include "threads/alarm.h"
-#include "threads/alarm.c"
 /* == My Implementation */
 #ifdef USERPROG
 #include "userprog/process.h"
