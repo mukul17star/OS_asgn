@@ -7,6 +7,10 @@
 #include "threads/io.h"
 #include "threads/synch.h"
 #include "threads/thread.h"
+/* My Implementation */
+#include "threads/alarm.h"
+#include "threads/fixed-point.h"
+/* == My Implementation */
   
 /* See [8254] for hardware details of the 8254 timer chip. */
 
@@ -98,31 +102,17 @@ timer_elapsed (int64_t then)
 void
 timer_sleep (int64_t ticks) 
 {
-  int64_t start = timer_ticks ();
-  int64_t wakeup_at = start+ticks;
+  /* Old Implementation
+  int64_t start = timer_ticks (); */
 
   ASSERT (intr_get_level () == INTR_ON);
-  
-
-  if(ticks == 0) thread_yield();
-  else{
-  struct thread *cur = thread_current ();
-  int prev_prior = cur->priority;
-  
-  // printf("timer sleep :: %s :: %d\n", thread_current()->name, wakeup_at);
-  cur->wakeup_at = wakeup_at;
-  // printf("110 : %d %d\n ",wakeup_at, cur->wakeup_at);
-  thread_set_next_wakeup (cur,wakeup_at);
-  // printf("111 : %d %d\n ",wakeup_at, cur->wakeup_at);
-  thread_priority_temporarily_up (cur);
-  // printf("113 : %d %d\n ",wakeup_at, cur->wakeup_at);
-
-  thread_block_till (cur,wakeup_at, cmp ,prev_prior);  // gadbad hai
-  // printf("116 : %d %d\n ",wakeup_at, cur->wakeup_at);
-
-  thread_priority_restore (cur,prev_prior);}
-  // while (timer_elapsed (start) < ticks) 
-  //   thread_yield ();
+  /* Old Implementation
+  while (timer_elapsed (start) < ticks) 
+    thread_yield (); */
+    
+  /* My Implementation */
+  set_alarm (ticks);
+  /* == My Implementation */
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -201,6 +191,21 @@ timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
   thread_tick ();
+  
+  /* My Implementation */
+  if (thread_mlfqs)
+  {
+    thread_current ()->recent_cpu = INT_ADD (thread_current ()->recent_cpu, 1);
+    if (ticks % TIMER_FREQ == 0) /* do this every second */
+      {
+        thread_calculate_load_avg ();
+        thread_calculate_recent_cpu_for_all ();
+      }
+    if (ticks % 4 == 3)
+      thread_calculate_priority_for_all ();
+  }
+  alarm_check (); /* Check the alarm and wake up threads */
+  /* == My Implementation */
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer
