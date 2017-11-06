@@ -9,6 +9,7 @@
 #include "threads/thread.h"
 /* My Implementation */
 #include "threads/alarm.h"
+#include "threads/alarm.c"
 #include "threads/fixed-point.h"
 /* == My Implementation */
   
